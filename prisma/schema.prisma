@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MerchantStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REVERSED
+}
+
+enum AttemptStatus {
+  STARTED
+  APPROVED
+  DECLINED
+  FAILED
+}
+
+enum LedgerDirection {
+  DEBIT
+  CREDIT
+}
+
+enum LedgerAccountType {
+  PAYMENT_CLEARING
+  MERCHANT_PAYABLE
+  REVERSAL_CLEARING
+}
+
+enum LedgerTransactionStatus {
+  PENDING
+  POSTED
+}
+
+model Merchant {
+  id        String          @id @default(cuid())
+  name      String
+  status    MerchantStatus  @default(ACTIVE)
+  createdAt DateTime        @default(now())
+  payments  Payment[]
+  accounts  LedgerAccount[]
+}
+
+model Payment {
+  id           String              @id @default(cuid())
+  merchantId   String
+  amount       Int
+  currency     String
+  status       PaymentStatus       @default(PENDING)
+  description  String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  merchant     Merchant            @relation(fields: [merchantId], references: [id])
+  attempts     PaymentAttempt[]
+  transactions LedgerTransaction[]
+
+  @@index([merchantId, createdAt])
+}
+
+model PaymentAttempt {
+  id                String        @id @default(cuid())
+  paymentId         String
+  attemptNumber     Int
+  status            AttemptStatus @default(STARTED)
+  providerReference String?
+  failureCode       String?
+  createdAt         DateTime      @default(now())
+  payment           Payment       @relation(fields: [paymentId], references: [id])
+
+  @@unique([paymentId, attemptNumber])
+}
+
+model LedgerAccount {
+  id          String            @id @default(cuid())
+  merchantId  String?
+  accountCode String
+  accountType LedgerAccountType
+  currency    String
+  createdAt   DateTime          @default(now())
+  merchant    Merchant?         @relation(fields: [merchantId], references: [id])
+  entries     LedgerEntry[]
+
+  @@unique([merchantId, accountCode, currency])
+}
+
+model LedgerTransaction {
+  id              String                  @id @default(cuid())
+  paymentId       String
+  reference       String                  @unique
+  transactionType String
+  status          LedgerTransactionStatus @default(PENDING)
+  createdAt       DateTime                @default(now())
+  payment         Payment                 @relation(fields: [paymentId], references: [id])
+  entries         LedgerEntry[]
+}
+
+model LedgerEntry {
+  id                  String            @id @default(cuid())
+  ledgerTransactionId String
+  accountId           String
+  direction           LedgerDirection
+  amount              Int
+  createdAt           DateTime          @default(now())
+  transaction         LedgerTransaction @relation(fields: [ledgerTransactionId], references: [id])
+  account             LedgerAccount     @relation(fields: [accountId], references: [id])
+
+  @@index([accountId, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actor      String
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+}

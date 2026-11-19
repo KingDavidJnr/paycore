@@ -1,0 +1,95 @@
+{
+  "info": {
+    "name": "PayCore Task 1 Investigation",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "host",
+      "value": "http://localhost:4000"
+    },
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000/api/v1"
+    },
+    {
+      "key": "merchantId",
+      "value": "merchant_demo_001"
+    },
+    {
+      "key": "paymentId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health check",
+      "request": {
+        "method": "GET",
+        "url": "{{host}}/health"
+      }
+    },
+    {
+      "name": "Create merchant",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Northstar Goods Ltd\"\n}"
+        },
+        "url": "{{baseUrl}}/merchants"
+      }
+    },
+    {
+      "name": "Create payment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"merchantId\": \"{{merchantId}}\",\n  \"amount\": 12500,\n  \"currency\": \"USD\",\n  \"description\": \"task1:capture-atomicity\"\n}"
+        },
+        "url": "{{baseUrl}}/payments"
+      }
+    },
+    {
+      "name": "Authorize payment",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/payments/{{paymentId}}/authorize"
+      }
+    },
+    {
+      "name": "Capture payment",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/payments/{{paymentId}}/capture"
+      }
+    },
+    {
+      "name": "Get payment",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/payments/{{paymentId}}"
+      }
+    },
+    {
+      "name": "Reverse payment",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/payments/{{paymentId}}/reverse"
+      }
+    }
+  ]
+}
