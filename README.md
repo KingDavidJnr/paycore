@@ -1,6 +1,6 @@
 # PayCore
 
-A deliberately unfinished payment processing backend application. This repository is intended as the starting input for a Project Dawn Task 1 engineering investigation.
+A deliberately unfinished payment processing backend application. This repository is intended as the starting input for an independent annotation project's Task 1 engineering investigation.
 
 ## Requirements
 - Node.js 20+
