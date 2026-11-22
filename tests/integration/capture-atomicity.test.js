@@ -6,24 +6,31 @@ describe('capture validation', () => {
   it('rejects capture when required ledger accounts are missing', async () => {
     const payment = buildPayment();
 
+    const tx = {
+      payment: {
+        update: vi.fn().mockResolvedValue({
+          ...payment,
+          status: "CAPTURED",
+        }),
+      },
+      ledgerAccount: {
+        findFirst: vi.fn().mockResolvedValue(null),
+      },
+      ledgerTransaction: {
+        create: vi.fn(),
+      },
+      ledgerEntry: {
+        createMany: vi.fn(),
+      },
+    };
+    
     const prisma = {
       payment: {
         findUnique: vi.fn().mockResolvedValue(payment),
-        update: vi.fn().mockResolvedValue({
-          ...payment,
-          status: 'CAPTURED'
-        })
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
-      ledgerAccount: {
-        findFirst: vi.fn().mockResolvedValue(null)
-      },
-      ledgerTransaction: {
-        create: vi.fn()
-      },
-      ledgerEntry: {
-        createMany: vi.fn()
-      }
-    };
+      $transaction: vi.fn((callback) => callback(tx)),
+    };    
 
     const provider = {
       capture: vi.fn().mockResolvedValue({ captured: true })
