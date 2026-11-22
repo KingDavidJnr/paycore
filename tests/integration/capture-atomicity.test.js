@@ -44,52 +44,58 @@ describe('capture validation', () => {
     expect(provider.capture).toHaveBeenCalledTimes(1);
   });
 
-  it('rejects capture when ledger entry creation fails', async () => {
+  it("finalises payment and ledger posting in one transaction", async () => {
     const payment = buildPayment();
-  
+    const captured = { ...payment, status: "CAPTURED" };
+
+
     const tx = {
       payment: {
-        update: vi.fn().mockResolvedValue({
-          ...payment,
-          status: 'CAPTURED'
-        })
+        update: vi.fn().mockResolvedValue(captured),
       },
       ledgerAccount: {
-        findFirst: vi.fn()
-          .mockResolvedValueOnce({ id: 'clearing_001' })
-          .mockResolvedValueOnce({ id: 'payable_001' })
+        findFirst: vi
+          .fn()
+          .mockResolvedValueOnce({ id: "clearing_001" })
+          .mockResolvedValueOnce({ id: "payable_001" }),
       },
       ledgerTransaction: {
-        create: vi.fn().mockResolvedValue({ id: 'ledger_001' }),
-        update: vi.fn()
+        create: vi.fn().mockResolvedValue({ id: "ledger_001" }),
+        update: vi
+          .fn()
+          .mockResolvedValue({ id: "ledger_001", status: "POSTED" }),
       },
       ledgerEntry: {
-        createMany: vi.fn().mockRejectedValue(
-          new Error('Ledger entry creation failed')
-        )
-      }
+        createMany: vi.fn().mockResolvedValue({ count: 2 }),
+      },
     };
-  
+
+
     const prisma = {
       payment: {
         findUnique: vi.fn().mockResolvedValue(payment),
-        updateMany: vi.fn().mockResolvedValue({ count: 1 })
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
-      $transaction: vi.fn(async callback => callback(tx))
+      $transaction: vi.fn((callback) => callback(tx)),
     };
-  
+
+
     const provider = {
-      capture: vi.fn().mockResolvedValue({ captured: true })
+      capture: vi.fn().mockResolvedValue({ captured: true }),
     };
-  
+
+
     const service = new PaymentService(prisma, provider);
-  
-    await expect(service.capture(payment.id))
-      .rejects.toThrow('Ledger entry creation failed');
-  
+
+
+    const result = await service.capture(payment.id);
+
+
+    expect(result.status).toBe("CAPTURED");
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(tx.payment.update).toHaveBeenCalled();
-    expect(tx.ledgerTransaction.update).not.toHaveBeenCalled();
+    expect(tx.ledgerEntry.createMany).toHaveBeenCalled();
+    expect(tx.ledgerTransaction.update).toHaveBeenCalled();
   });
   
 });
